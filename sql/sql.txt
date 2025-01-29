@@ -52,3 +52,55 @@ START PIPELINE tick;
 
 SELECT COUNT(*)
 FROM tick;
+
+-- Q1
+SELECT symbol, (MAX(high) - MIN(low)) AS volatility
+FROM tick
+GROUP BY symbol
+ORDER BY volatility ASC
+LIMIT 1;
+
+-- Q2
+SELECT COUNT(*)
+FROM tick;
+
+-- Q3
+-- Step 1: Get the latest price for each symbol
+WITH latest_prices AS (
+    SELECT symbol, price
+    FROM tick t1
+    WHERE ts = (
+        SELECT MAX(ts)
+        FROM tick t2
+        WHERE t2.symbol = t1.symbol
+    )
+)
+
+-- Step 2: Calculate the total portfolio value
+SELECT SUM(p.shares_held * lp.price) AS total_portfolio_value
+FROM portfolio p, latest_prices lp
+WHERE p.symbol = lp.symbol;
+
+-- Q4
+SELECT
+    (
+        SELECT ts
+        FROM stock_sentiment
+        WHERE symbol = 'AAPL'
+        ORDER BY positive DESC
+        LIMIT 1
+    ) AS sentiment_date,
+    (
+        SELECT positive
+        FROM stock_sentiment
+        WHERE symbol = 'AAPL'
+        ORDER BY positive DESC
+        LIMIT 1
+    ) AS most_positive_sentiment,
+    (
+        SELECT price
+        FROM tick
+        WHERE symbol = 'AAPL'
+        ORDER BY ts DESC
+        LIMIT 1
+    ) AS current_best_price;
