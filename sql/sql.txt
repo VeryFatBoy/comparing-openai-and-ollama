@@ -1,0 +1,54 @@
+CREATE TABLE IF NOT EXISTS tick (
+    symbol VARCHAR(10),
+    ts     DATETIME SERIES TIMESTAMP,
+    open   NUMERIC(18, 2),
+    high   NUMERIC(18, 2),
+    low    NUMERIC(18, 2),
+    price  NUMERIC(18, 2),
+    volume INT,
+    KEY(ts)
+);
+
+CREATE TABLE IF NOT EXISTS portfolio (
+    symbol         VARCHAR(10),
+    shares_held    INT,
+    purchase_date  DATE,
+    purchase_price NUMERIC(18, 2)
+);
+
+CREATE TABLE IF NOT EXISTS stock_sentiment (
+    headline  VARCHAR(250),
+    positive  FLOAT,
+    negative  FLOAT,
+    neutral   FLOAT,
+    url       TEXT,
+    publisher VARCHAR(30),
+    ts        DATETIME,
+    symbol    VARCHAR(10)
+);
+
+INSERT INTO portfolio (symbol, shares_held, purchase_date, purchase_price) VALUES
+('AAPL', 100, '2022-01-15',  150.25),
+('MSFT',  50, '2021-12-10',  305.50),
+('GOOGL', 25, '2021-11-05', 2800.75),
+('AMZN',  10, '2020-07-20', 3200.00),
+('TSLA',  40, '2022-02-18',  900.60),
+('NFLX',  15, '2021-09-01',  550.00);
+
+-- mysql -u "<username>" -p"<password>" -h "<host>" -P <port> -D <database> < stock_sentiment.sql
+
+CREATE PIPELINE tick
+AS LOAD DATA KAFKA 'public-kafka.memcompute.com:9092/stockticker'
+BATCH_INTERVAL 45000
+INTO TABLE tick
+FIELDS TERMINATED BY ','
+(symbol,ts,open,high,low,price,volume);
+
+ALTER PIPELINE tick SET OFFSETS EARLIEST;
+
+TEST PIPELINE tick LIMIT 1;
+
+START PIPELINE tick;
+
+SELECT COUNT(*)
+FROM tick;
